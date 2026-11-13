@@ -49,6 +49,8 @@ export interface Artifact {
   rawScript?: import("../types").Script;
   runId?: string;
   paperId?: string;
+  generationBatchId?: string;
+  generationUpdatedAt?: string;
   downloadUrl?: string;
   slidesPdfUrl?: string;
   slidesPptxUrl?: string;

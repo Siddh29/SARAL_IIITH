@@ -14,6 +14,7 @@ import { createPresentationSlice } from "./slices/presentation-slice";
 import { createReelSlice } from "./slices/reel-slice";
 import { createSocialSlice } from "./slices/social-slice";
 import { createBusinessBriefSlice } from "./slices/business-brief-slice";
+import { createGenerationSlice } from "./slices/generation-slice";
 import { usePaperStore } from "../paper-store";
 
 const INITIAL_STATE = {
@@ -58,6 +59,7 @@ export const useArtifactStore = create<ArtifactStore>()(
       ...createReelSlice(set, get, api),
       ...createSocialSlice(set, get, api),
       ...createBusinessBriefSlice(set, get, api),
+      ...createGenerationSlice(set, get, api),
 
       // ── Internal helpers used by slices ───────────────────────────────────
 
@@ -164,6 +166,7 @@ export const useArtifactStore = create<ArtifactStore>()(
       retryArtifact: (id) => {
         const a = get().artifacts.find((x: Artifact) => x.id === id);
         if (!a || a.status !== "error") return;
+        if (a.generationBatchId) { void get().retryGenerationArtifact(id); return; }
         switch (a.type) {
           case "video": get().retryVideoArtifact(id, a); break;
           case "podcast": get().retryPodcastArtifact(id, a); break;
@@ -292,7 +295,7 @@ export const useArtifactStore = create<ArtifactStore>()(
         // Only persist completed/error artifacts — in-progress ones lose their SSE on refresh.
         // Strip pdfBlobUrl: blob: URLs are session-scoped and become dangling refs after reload.
         artifacts: state.artifacts
-          .filter((a) => a.status === "done" || a.status === "error")
+          .filter((a) => a.generationBatchId || a.status === "done" || a.status === "error")
           .map((a) => { const copy = { ...a }; delete copy.pdfBlobUrl; return copy; }),
       }),
     },

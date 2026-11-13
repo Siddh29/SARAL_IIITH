@@ -83,6 +83,12 @@ flowchart TD
 
 For the deeper architecture guide, see [backend/ARCHITECTURE.md](backend/ARCHITECTURE.md).
 
+**Multi-format generation:** Select Video, Podcast and Slides together during
+upload to create them in one generation batch. All generators reuse the same
+parsed paper; progress, refresh recovery and retries are tracked per output.
+Apply migration `010_multi_format.sql` when upgrading. See
+[the feature and API guide](backend/MULTI_FORMAT.md).
+
 ---
 
 ## Table of Contents

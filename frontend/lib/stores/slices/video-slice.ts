@@ -139,6 +139,8 @@ export const createVideoSlice: StateCreator<ArtifactStore, [], [], VideoSlice> =
 
     const newArtifact: Artifact = {
       ...originalArtifact,
+      generationBatchId: undefined,
+      generationUpdatedAt: undefined,
       id: newId,
       status: "generating",
       progress: 0,

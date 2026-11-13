@@ -7,10 +7,12 @@ import { X, ArrowLeft, FileText, Code2, Globe, Link } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { FileUpload } from "@/components/ui/file-upload";
-import { Switch } from "@/components/ui/switch";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { usePaperStore } from "@/lib/paper-store";
+import { useArtifactStore } from "@/lib/artifact-store";
+import { generateFormats, type GenerationFormat } from "@/lib/api/generation";
+import GenerationFormatPicker from "./generation-format-picker";
 
 function SkeletonPage() {
   return (
@@ -75,12 +77,10 @@ export default function UploadModal({
   const router = useRouter();
   const {
     file,
-    isPatent,
     status,
     processingStep: storeProcessingStep,
     metadata,
     setFile,
-    setIsPatent,
     setMetadata,
     startUpload,
     startArxivIngest,
@@ -92,6 +92,10 @@ export default function UploadModal({
   const [uploadType, setUploadType] = useState<UploadType>("pdf");
   const [arxivUrl, setArxivUrl] = useState("");
   const [arxivError, setArxivError] = useState("");
+  const [selectedFormats, setSelectedFormats] = useState<GenerationFormat[]>([]);
+  const [startingGeneration, setStartingGeneration] = useState(false);
+  const [generationError, setGenerationError] = useState("");
+  const handleClose = () => { if (!startingGeneration) onClose(); };
 
   // Reset when modal opens — skip full reset when jumping straight to upload step
   // (caller has already set the file in the store)
@@ -103,6 +107,9 @@ export default function UploadModal({
       setUploadType(initialUploadType ?? "pdf");
       setArxivUrl("");
       setArxivError("");
+      setSelectedFormats([]);
+      setGenerationError("");
+      setStartingGeneration(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -129,18 +136,29 @@ export default function UploadModal({
     await startArxivIngest(arxivUrl);
   };
 
-  const handleMetadataNext = () => {
-    const newPaperId = addPaper();
-    onClose();
-    router.push(`/dashboard/paper/${newPaperId}`);
+  const handleMetadataNext = async () => {
+    if (startingGeneration) return;
+    setStartingGeneration(true);
+    setGenerationError("");
+    try {
+      if (selectedFormats.length) {
+        const sourceRunId = usePaperStore.getState().runId;
+        if (!sourceRunId) throw new Error("Paper is not ready yet. Please finish uploading first.");
+        const batch = await generateFormats(sourceRunId, selectedFormats);
+        await useArtifactStore.getState().syncGenerationBatch(batch);
+      }
+      const newPaperId = addPaper();
+      onClose();
+      router.push(`/dashboard/paper/${newPaperId}`);
+    } catch (error) {
+      setGenerationError(error instanceof Error ? error.message : "Could not start generation. Please try again.");
+    } finally {
+      setStartingGeneration(false);
+    }
   };
 
-  // Determine the file accept string and label for the current upload type
+  // Determine the file accept string for the current upload type
   const fileAccept = uploadType === "latex" ? ".zip" : ".pdf";
-  const fileLabel =
-    uploadType === "latex"
-      ? "Drop your LaTeX ZIP here or click to browse"
-      : "Drop your PDF here or click to browse";
 
   return (
     <AnimatePresence>
@@ -151,7 +169,7 @@ export default function UploadModal({
             animate={{ opacity: 0.4 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 bg-black z-40"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           <motion.div
@@ -190,7 +208,8 @@ export default function UploadModal({
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={onClose}
+                  onClick={handleClose}
+                  disabled={startingGeneration}
                   className="text-ink-faint hover:text-ink dark:text-white h-8 w-8"
                 >
                   <X size={18} />
@@ -336,7 +355,7 @@ export default function UploadModal({
                     <div className="flex justify-between items-center pt-8 max-sm:pt-6 mt-8 max-sm:mt-6 border-t border-pill-border">
                       <Button
                         variant="outline"
-                        onClick={onClose}
+                        onClick={handleClose}
                         className="font-sans font-semibold text-[14px] px-6 py-3 h-auto border-pill-border text-ink dark:text-white hover:bg-linen dark:bg-saral-dark/50"
                       >
                         Cancel
@@ -397,6 +416,7 @@ export default function UploadModal({
                       </div>
                     )}
 
+                    <GenerationFormatPicker selected={selectedFormats} onChange={setSelectedFormats} />
                     <div className="flex items-center justify-end">
                       {/* {uploadType !== "arxiv" ? (
                         <div className="flex items-center gap-3">
@@ -499,12 +519,15 @@ export default function UploadModal({
                       />
                     </div>
 
+                    <GenerationFormatPicker selected={selectedFormats} onChange={setSelectedFormats} disabled={startingGeneration} />
+                    {generationError && <p role="alert" className="text-sm text-red-600 dark:text-red-400">{generationError}</p>}
                     <div className="flex justify-end pt-2">
                       <Button
                         onClick={handleMetadataNext}
+                        disabled={startingGeneration}
                         className="bg-ink cursor-pointer text-white hover:bg-[#333] font-sans font-bold text-[14px] px-6 py-5"
                       >
-                        Go to dashboard
+                        {startingGeneration ? "Starting generation…" : selectedFormats.length ? `Generate ${selectedFormats.length} output${selectedFormats.length > 1 ? "s" : ""}` : "Go to dashboard"}
                       </Button>
                     </div>
                   </div>

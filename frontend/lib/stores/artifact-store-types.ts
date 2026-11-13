@@ -22,6 +22,8 @@ export type ActiveModal =
  * it without creating a circular import with artifact-store.ts.
  */
 export interface ArtifactStore {
+  syncGenerationBatch: (batch: import("../api/generation").GenerationBatch) => Promise<void>;
+  retryGenerationArtifact: (id: string) => Promise<void>;
   // ── State ────────────────────────────────────────────────────────────────
   artifacts: Artifact[];
 

@@ -144,6 +144,17 @@ func Handler(pool *pgxpool.Pool, rdb *goredis.Client, sseMgr *sse.Manager) gin.H
 		}
 
 		// ── Per-pipeline dispatch ─────────────────────────────────────────────
+		if update.StepName == "podcast_script_gen" {
+			handled, err := pipeline.ContinueGenerationOutput(ctx, pool, runID, stepID, update.GCSOutputPath)
+			if err != nil {
+				apiresp.Error(c, http.StatusInternalServerError, "generation_continue_failed", "could not queue podcast audio")
+				return
+			}
+			if handled {
+				apiresp.OK(c, gin.H{"ok": true})
+				return
+			}
+		}
 		switch update.StepName {
 		case "podcast_pdf_extract", "podcast_script_gen", "podcast_tts":
 			handlePodcastStep(ctx, c, pool, rdb, sseMgr, runID, stepID, &update)
@@ -182,6 +193,12 @@ func Handler(pool *pgxpool.Pool, rdb *goredis.Client, sseMgr *sse.Manager) gin.H
 				// User must confirm before next steps start.
 				if update.StepName == "script_gen" && update.PaperTitle != "" {
 					persistPaperMetadata(pool, runID, &update)
+				}
+				if update.StepName == "script_gen" {
+					if _, err := pipeline.ContinueGenerationOutput(ctx, pool, runID, stepID, update.GCSOutputPath); err != nil {
+						apiresp.Error(c, http.StatusInternalServerError, "generation_continue_failed", "could not queue output rendering")
+						return
+					}
 				}
 				apiresp.OK(c, gin.H{"ok": true})
 			default:

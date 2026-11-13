@@ -5,10 +5,10 @@ import (
 	"fmt"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/saral/gateway/internal/keycrypt"
 )
-
 
 func UpsertUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, email, provider string) (uuid.UUID, error) {
 	var id uuid.UUID
@@ -23,8 +23,9 @@ func UpsertUser(ctx context.Context, pool *pgxpool.Pool, firebaseUID, email, pro
 	return id, err
 }
 
-
-func GetUserKeys(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID) (geminiKey, sarvamKey string, err error) {
+func GetUserKeys(ctx context.Context, pool interface {
+	QueryRow(context.Context, string, ...any) pgx.Row
+}, userID uuid.UUID) (geminiKey, sarvamKey string, err error) {
 	var rawGemini, rawSarvam string
 	err = pool.QueryRow(ctx, `
         SELECT COALESCE(gemini_key, ''), COALESCE(sarvam_key, '')
@@ -40,7 +41,6 @@ func GetUserKeys(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID) (gem
 	sarvamKey, err = keycrypt.Decrypt(rawSarvam)
 	return
 }
-
 
 func SetUserKeys(ctx context.Context, pool *pgxpool.Pool, userID uuid.UUID, geminiKey, sarvamKey string) error {
 	encGemini, err := keycrypt.Encrypt(geminiKey)

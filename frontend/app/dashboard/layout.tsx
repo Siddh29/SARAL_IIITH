@@ -7,6 +7,7 @@ import { auth } from "@/lib/firebase";
 import { useAuthStore } from "@/lib/auth-store";
 import { logoutEverywhere } from "@/lib/logout";
 import DashboardArtifactModals from "@/components/dashboard/dashboard-artifact-modals";
+import { useGenerationTracking } from "@/hooks/use-generation-tracking";
 //import DisclaimerFooter from "@/components/disclaimer-footer";
 /**
  * Dashboard layout — wraps all /dashboard/** pages.
@@ -22,6 +23,7 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  useGenerationTracking();
   const token = useAuthStore((s) => s.token);
   const [authReady, setAuthReady] = useState(false);
 

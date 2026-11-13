@@ -42,6 +42,7 @@ func main() {
 	rdb := redisx.NewClient()
 	redisx.EnsureConsumerGroups(ctx, rdb)
 	go redisx.StartJanitor(ctx, rdb, pool) // background retry loop
+	go pipeline.StartGenerationDispatcher(ctx, pool, rdb)
 
 	// ── Firebase Auth ─────────────────────────────────────────────────────────
 	if err := auth.Init(ctx); err != nil {
@@ -141,6 +142,10 @@ func main() {
 	// ── Protected routes (Firebase auth required) ─────────────────────────────
 	protected := r.Group("/api")
 	protected.Use(auth.Middleware())
+	protected.POST("/papertovideo/:run_id/generate-formats", pipeline.GenerateFormatsHandler(pool))
+	protected.GET("/generations/:batch_id", pipeline.GenerationStatusHandler(pool))
+	protected.POST("/generations/:batch_id/outputs/:format/retry", pipeline.RetryGenerationOutputHandler(pool))
+	protected.GET("/papers/:paper_id/generations", pipeline.PaperGenerationsHandler(pool))
 	protected.GET("/auth/me", auth.MeHandler())
 	protected.GET("/auth/providers", auth.ProvidersHandler())
 	protected.GET("/auth/verify", auth.VerifyHandler())

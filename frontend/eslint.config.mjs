@@ -15,6 +15,7 @@ const eslintConfig = defineConfig([
     "public/**",
   ]),
   {
+    files: ["**/*.{js,jsx,ts,tsx,mjs,mts}"],
     rules: {
       "react/no-unescaped-entities": "off",
       "@next/next/no-img-element": "off",

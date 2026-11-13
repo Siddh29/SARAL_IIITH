@@ -8,6 +8,7 @@ import PaperArtifactsPanel from "@/components/dashboard/artifacts-tabs";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { ArtifactGenerateSheetButtons } from "@/components/dashboard/artifact-sheet-mobile";
 import PaperBasicDetails from "@/components/dashboard/paper-basic-details";
+import GenerationSummary from "./generation-summary";
 
 export default function PaperDetailContent() {
   const params = useParams<{ id: string }>();
@@ -64,6 +65,7 @@ export default function PaperDetailContent() {
               <PaperBasicDetails
                 onOpenGenerateSheet={() => setGenerateSheetOpen(true)}
               />
+              <GenerationSummary />
               <PaperArtifactsPanel onShareArtifact={handleShareArtifact} />
             </div>
           </main>

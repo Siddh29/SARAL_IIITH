@@ -102,6 +102,7 @@ export const createPresentationSlice: StateCreator<ArtifactStore, [], [], Presen
     const newId = `presentation-${Date.now()}`;
     const newArtifact: Artifact = {
       ...original, id: newId, status: "generating", progress: 15,
+      generationBatchId: undefined, generationUpdatedAt: undefined,
       statusMessage: "Building slides…",
       slidesPdfUrl: undefined, slidesPptxUrl: undefined, downloadUrl: undefined,
       errorMessage: undefined, needsUserAction: undefined, replacesArtifactId: undefined,
