@@ -75,16 +75,16 @@ jobs:
         working-directory: ./backend/services/pdf-parser
         run: |
           uv sync
-          uv tool run ruff check --select E4,E7,E9,F .
+          uv tool run ruff check .
 
       - name: Check Beamer
         working-directory: ./backend/services/beamer
         run: |
           uv sync
-          uv tool run ruff check --select E4,E7,E9,F .
+          uv tool run ruff check .
 
       - name: Check FFmpeg Job
         working-directory: ./backend/services/ffmpeg-job
         run: |
           uv sync
-          uv tool run ruff check --select E4,E7,E9,F .
+          uv tool run ruff check .

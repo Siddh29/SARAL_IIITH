@@ -1,23 +1,22 @@
 # This bootstrap must run before importing shared clients: they capture their
 # environment configuration at import time.
-# ruff: noqa: I001
 import asyncio
 import logging
 import os
 import signal
 import sys
 import tempfile
+from pathlib import Path
 
 import redis as redis_lib
 from dotenv import load_dotenv
-from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / ".env.shared")
 
-from saral_shared import db_client as db_ops  # noqa: E402
-from saral_shared import storage_client as storage  # noqa: E402
-from saral_shared import webhook_client as wh  # noqa: E402
-from saraldocling import parse_pdf, ParseConfig  # noqa: E402
+from saral_shared import db_client as db_ops
+from saral_shared import storage_client as storage
+from saral_shared import webhook_client as wh
+from saraldocling import ParseConfig, parse_pdf
 
 logging.basicConfig(
     level=logging.INFO,
