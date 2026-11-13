@@ -1,3 +1,6 @@
+# This bootstrap must run before importing shared clients: they capture their
+# environment configuration at import time.
+# ruff: noqa: I001
 import asyncio
 import logging
 import os
@@ -11,10 +14,10 @@ from pathlib import Path
 
 load_dotenv(dotenv_path=Path(__file__).parent.parent.parent / ".env.shared")
 
-from saral_shared import db_client as db_ops  # noqa: E402
-from saral_shared import storage_client as storage  # noqa: E402
-from saral_shared import webhook_client as wh  # noqa: E402
-from saraldocling import parse_pdf, ParseConfig  # noqa: E402
+from saral_shared import db_client as db_ops
+from saral_shared import storage_client as storage
+from saral_shared import webhook_client as wh
+from saraldocling import parse_pdf, ParseConfig
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,7 +42,7 @@ def _sigterm_handler(sig, frame):
             _rdb.xack(STREAM, GROUP, _current_msg_id)
         if _rdb:
             _rdb.xgroup_delconsumer(STREAM, GROUP, CONSUMER)
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - shutdown cleanup must remain best-effort
         log.warning("[SIGTERM] cleanup error: %s", exc)
     sys.exit(0)
 
@@ -143,7 +146,7 @@ async def process_job_async(rdb, msg_id: str, data: dict, pool):
         log.info(f"run_id={run_id}: complete, XACK'd")
 
     except Exception as e:
-        log.error(f"run_id={run_id}: failed: {e}", exc_info=True)
+        log.exception("run_id=%s: processing failed", run_id)
         await db_ops.fail_step(pool, step_id, str(e))
         try:
             step_name = "pdf_extract"
@@ -159,7 +162,7 @@ async def process_job_async(rdb, msg_id: str, data: dict, pool):
                 "next_job_data": {},
             })
         except Exception:
-            pass
+            log.exception("run_id=%s: failed to report parser failure", run_id)
 
 
 async def main_async():
@@ -195,7 +198,7 @@ async def main_async():
                 _current_msg_id = None
             if next_id == "0-0":
                 break
-    except Exception as exc:
+    except Exception as exc:  # noqa: BLE001 - reclaim sweep must not stop worker startup
         log.warning("[startup] XAUTOCLAIM sweep error: %s", exc)
 
     pool = await db_ops.init_pool()
@@ -214,8 +217,8 @@ async def main_async():
         except redis_lib.exceptions.ConnectionError:
             log.error("Redis connection lost, retrying in 5s")
             await asyncio.sleep(5)
-        except Exception as e:
-            log.error(f"Loop error: {e}", exc_info=True)
+        except Exception:
+            log.exception("Loop error")
             await asyncio.sleep(2)
 
 
